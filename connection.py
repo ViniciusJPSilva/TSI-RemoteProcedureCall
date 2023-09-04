@@ -5,6 +5,8 @@ STD_PORT = 14000
 LOCAL_HOST = "127.0.0.1"
 
 STD_ENCODE = "UTF-8"
+STD_BYTE_ORDER = "big"
+DATA_LENGTH_RESERVED_BYTES = 4
 
 def create_server_connection(port: int = STD_PORT) -> socket.socket:
     """
@@ -46,17 +48,38 @@ def receive_socket_message(receiver_socket: socket.socket) -> str:
     :param receiver_socket: O soquete para receber a mensagem.
     :return: A mensagem recebida como uma string decodificada.
     """
-    full_message = b""
-    while True:
-        chunk = receiver_socket.recv(BUFFER_SIZE)
+    length_bytes = receiver_socket.recv(DATA_LENGTH_RESERVED_BYTES)
+    
+    if not length_bytes:
+        return None
+    
+    length = int.from_bytes(length_bytes, byteorder = STD_BYTE_ORDER)
+
+    message = b""
+    while len(message) < length:
+        chunk = receiver_socket.recv(length - len(message))
+       
         if not chunk:
-            break
+            break  
         
-        full_message += chunk
+        message += chunk
 
-        if len(chunk) < BUFFER_SIZE:
-            break
-
-    return full_message.decode(STD_ENCODE)
+    return message.decode(STD_ENCODE)
     
 # receive_socket_message()
+
+
+def send_socket_message(sender_socket: socket.socket, message: str) -> None:
+    """
+    Envia uma mensagem através de um soquete.
+
+    :param sender_socket: O soquete usado para enviar a mensagem.
+    :param message: A mensagem a ser enviada como uma string.
+    :return: Nenhum valor é retornado.
+    """
+    message_bytes = message.encode(STD_ENCODE)
+    length = len(message_bytes).to_bytes(DATA_LENGTH_RESERVED_BYTES, byteorder = STD_BYTE_ORDER)
+
+    sender_socket.sendall(length + message_bytes)
+
+# send_socket_message()

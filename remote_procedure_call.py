@@ -1,13 +1,16 @@
-from re import sub
 import connection
 import threading
 import json
-from typing import Tuple, Any
+import multiprocessing
+import mathematics as math
+from typing import Tuple, Any, List
 
 SUM = "__SUM__"
 SUB = "__SUB__"
 MUL = "__MUL__"
 DIV = "__DIV__"
+PRIME = "__PRIME__"
+MULTIPROCESS_PRIME = "__MUL_PROC_PRIME__"
 
 END = "__END__"
 
@@ -37,11 +40,13 @@ class Client:
         self.server_port = server_port
         self.client_socket = connection.create_client_connection(server_ip, server_port)
 
+
     def __del__(self):
         """
         Fecha a conexão do cliente com o servidor ao destruir o objeto.
         """
         self.close()
+
 
     def close(self):
         """
@@ -49,18 +54,27 @@ class Client:
         """
         self.client_socket.close()
 
+
     def __send_request(self, operation: str, args):
+        """
+        Envia uma solicitação para o servidor e recebe uma resposta.
+
+        :param operation: A operação que deseja solicitar ao servidor.
+        :param args: Argumentos para a operação.
+        :return: A resposta do servidor após processar a solicitação.
+        """
         request = {
             JSON_KEY_TASK: operation,
             JSON_KEY_ARGS: args
         }
         request_str = json.dumps(request)
-        self.client_socket.sendall(request_str.encode(connection.STD_ENCODE))
+        connection.send_socket_message(self.client_socket, request_str)
 
         response_str = connection.receive_socket_message(self.client_socket)
         response = json.loads(response_str)
 
         return response
+    
 
     def sum(self, *args: float) -> float:
         """
@@ -120,7 +134,35 @@ class Client:
                 raise ZeroDivisionError("Impossível dividir por zero!")
             else:
                 raise Exception("Argumentos inválidos!")
+            
+            
+    def is_prime(self, *args: int) -> List[Tuple[int, bool]]:
+        """
+        Envia uma solicitação de identificação de um número primo para o servidor e retorna o resultado.
+
+        :param args: Números a serem identificados.
+        :return: True caso seja primo, False caso contrário.
+        """
+        response = self.__send_request(PRIME, args)
+        try:
+            return response[JSON_KEY_RESS]
+        except Exception:
+            raise Exception("Argumentos inválidos!")
         
+        
+    def is_prime_multiprocess(self, *args: int) -> List[Tuple[int, bool]]:
+        """
+        Envia uma solicitação de identificação de um número primo para o servidor e retorna o resultado.
+        Exige que o servidor processe os dados utilizando multiprocessamento.
+
+        :param args: Números a serem identificados.
+        :return: True caso seja primo, False caso contrário.
+        """
+        response = self.__send_request(MULTIPROCESS_PRIME, args)
+        try:
+            return response[JSON_KEY_RESS]
+        except Exception:
+            raise Exception("Argumentos inválidos!")
 
 
 class Server:
@@ -141,7 +183,10 @@ class Server:
             SUB: self.__sub_task,
             MUL: self.__mul_task,
             DIV: self.__div_task,
+            PRIME: self.__is_prime_task,
+            MULTIPROCESS_PRIME: self.__is_prime_multiprocessing_task,
         }
+
 
     def __del__(self):
         """
@@ -149,6 +194,7 @@ class Server:
         """
         if self.server_socket: 
             self.server_socket.close()
+
 
     def start(self) -> None:
         """
@@ -174,6 +220,15 @@ class Server:
                 thread.join(0)
             self.server_socket.close()
 
+
+    def close(self) -> None:
+        """
+        Fecha o socket do servidor ao fechar o objeto.
+        """
+        if self.server_socket: 
+            self.server_socket.close()
+
+
     def __handle_client(self, connection_socket: connection.socket.socket, 
                         address: Tuple[str, int]) -> None:
         """
@@ -191,12 +246,14 @@ class Server:
                     if task == END:
                         break
                     if task not in self.operation_mapping:
+                        connection_socket.sendall(ERR.encode(connection.STD_ENCODE))
                         continue
                     
-                    connection_socket.sendall(self.operation_mapping[task](*args).encode(connection.STD_ENCODE))
+                    connection.send_socket_message(connection_socket, self.operation_mapping[task](*args))
                 else:
                     break
         print(f"{address[0]} desconectou\n")
+
 
     def __sum_task(self, *args) -> str:
         """
@@ -205,13 +262,12 @@ class Server:
         :param args: Números a serem somados.
         :return: Resultado da soma.
         """        
-        result = {}
+        result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else sum(args)
-        except TypeError:
-            result[JSON_KEY_RESS] = ERR
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.add(args)
+        finally:
+            return json.dumps(result)
         
-        return json.dumps(result)
     
     def __sub_task(self, *args) -> str:
         """
@@ -220,13 +276,12 @@ class Server:
         :param args: Números a serem somados.
         :return: Resultado da soma.
         """        
-        result = {}
+        result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else (args[0] + sum([num * -1 for num in args[1:]]))
-        except TypeError:
-            result[JSON_KEY_RESS] = ERR
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.sub(args)
+        finally:
+            return json.dumps(result)
         
-        return json.dumps(result)
     
     def __mul_task(self, *args) -> str:
         """
@@ -235,16 +290,11 @@ class Server:
         :param args: Números a serem usados na multiplicação.
         :return: Resultado da multiplicação.
         """
-        result = {}
+        result = { JSON_KEY_RESS: ERR }
         try:
-            product = 1
-            for number in args:
-                product  *= number
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else product
-        except TypeError:
-            result[JSON_KEY_RESS] = ERR
-        
-        return json.dumps(result)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.mul(args)
+        finally:
+            return json.dumps(result)
     
 
     def __div_task(self, *args) -> str:
@@ -254,21 +304,48 @@ class Server:
         :param args: Números a serem usados na multiplicação.
         :return: Resultado da multiplicação.
         """
-        result = {}
+        result = { JSON_KEY_RESS: ERR }
         try:
-            if len(args) < 1:
-                result[JSON_KEY_RESS] = ERR
-            else:
-                quotient = args[0]
-                for number in args[1:]:
-                    quotient  /= number
-                result[JSON_KEY_RESS] = quotient
-        except TypeError:
-            result[JSON_KEY_RESS] = ERR
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.div(args)
         except ZeroDivisionError:
             result[JSON_KEY_RESS] = ERR_DIV_BY_ZERO
+        finally:
+            return json.dumps(result)
         
-        return json.dumps(result)
+        
+    def __is_prime_task(self, *args) -> str:
+        """
+        Verifica se os números fornecidos são primos e retorna o resultado como uma string JSON.
+
+        :param args: Uma lista de números inteiros a serem verificados.
+        :return: Uma string JSON contendo os resultados da verificação de primos para cada número.
+        """
+        result = { JSON_KEY_RESS: ERR }
+        try:
+            res = []
+            [res.append((number, math.is_prime(number))) for number in args]
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else res
+        finally:
+            return json.dumps(result)
+        
+        
+    def __is_prime_multiprocessing_task(self, *args) -> str:
+        """
+        Verifica se os números fornecidos são primos usando múltiplos processos e retorna o resultado como uma string JSON.
+
+        :param args: Uma lista de números inteiros a serem verificados.
+        :return: Uma string JSON contendo os resultados da verificação de primos para cada número.
+        """
+        pool = multiprocessing.Pool()
+        try:
+            results = pool.map(math.is_prime, args)
+            result = {JSON_KEY_RESS: ERR if len(args) < 1 else list(zip(args, results))}
+        except Exception as e:
+            result = {JSON_KEY_RESS: ERR}
+        finally:
+            pool.close()
+            pool.join()
+            return json.dumps(result)
     
 
     def __decode_request_message(self, request_message: str) -> (str, Any):
