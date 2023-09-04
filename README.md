@@ -16,3 +16,11 @@ O servidor RPC deverá conter as operações básicas de soma, subtração, mult
 3 - Exiba todos os números primos entre 10 e 10000.
 4 - Adicione multiprocessamento à implementação da operação no servidor, de modo que ela seja capaz de analisar se vários números da lista são primos em paralelo.
 5 - Utilize o módulo time para contabilizar o tempo de execução da operação com e sem multiprocessamento, para demonstrar que a versão paralela é realmente mais rápida.
+
+<hr>
+
+## Semana 3
+
+Implementação um sistema de cache em memória no cliente para todas as operações do RPC.
+
+<hr>

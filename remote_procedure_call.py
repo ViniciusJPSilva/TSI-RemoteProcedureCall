@@ -2,6 +2,7 @@ import connection
 import threading
 import json
 import multiprocessing
+from cache import Cache
 import mathematics as math
 from typing import Tuple, Any, List
 
@@ -21,6 +22,7 @@ JSON_KEY_TASK = "task"
 JSON_KEY_ARGS = "args"
 JSON_KEY_RESS = "result"
 
+MAX_ITEMS_CACHE = 10
 
 class Client:
     """
@@ -38,7 +40,12 @@ class Client:
         """
         self.server_ip = server_ip
         self.server_port = server_port
-        self.client_socket = connection.create_client_connection(server_ip, server_port)
+        self.client_socket = None
+        try:
+            self.client_socket = connection.create_client_connection(server_ip, server_port)
+        except:
+            raise ConnectionError("Erro ao se conectar ao servidor!")
+        self.cache = Cache(MAX_ITEMS_CACHE)
 
 
     def __del__(self):
@@ -52,26 +59,33 @@ class Client:
         """
         Fecha a conexão do cliente com o servidor.
         """
-        self.client_socket.close()
+        if self.client_socket:
+            self.client_socket.close()
 
 
-    def __send_request(self, operation: str, args):
+    def __send_request(self, task: str, args):
         """
         Envia uma solicitação para o servidor e recebe uma resposta.
 
-        :param operation: A operação que deseja solicitar ao servidor.
+        :param task: A operação que deseja solicitar ao servidor.
         :param args: Argumentos para a operação.
         :return: A resposta do servidor após processar a solicitação.
         """
-        request = {
-            JSON_KEY_TASK: operation,
-            JSON_KEY_ARGS: args
-        }
-        request_str = json.dumps(request)
-        connection.send_socket_message(self.client_socket, request_str)
+        cache_key = self.cache.create_key(task if task not in [PRIME, MULTIPROCESS_PRIME] else PRIME, args)
+        response = self.cache.verify_cache(cache_key)
 
-        response_str = connection.receive_socket_message(self.client_socket)
-        response = json.loads(response_str)
+        if not response:
+            request_str = json.dumps({
+                    JSON_KEY_TASK: task,
+                    JSON_KEY_ARGS: args
+                })
+            connection.send_socket_message(self.client_socket, request_str)
+
+            response_str = connection.receive_socket_message(self.client_socket)
+            response = json.loads(response_str)[JSON_KEY_RESS]
+
+            if response not in [ERR, ERR_DIV_BY_ZERO]:
+                self.cache.add_in_cache(cache_key, response)
 
         return response
     
@@ -85,7 +99,7 @@ class Client:
         """
         response = self.__send_request(SUM, args)
         try:
-            return float(response[JSON_KEY_RESS])
+            return float(response)
         except Exception:
             raise Exception("Argumentos inválidos!")
         
@@ -100,7 +114,7 @@ class Client:
         response = self.__send_request(SUB, args)
         
         try:
-            return float(response[JSON_KEY_RESS])
+            return float(response)
         except Exception as error:
             raise Exception("Argumentos inválidos!")
         
@@ -114,7 +128,7 @@ class Client:
         """
         response = self.__send_request(MUL, args)
         try:
-            return float(response[JSON_KEY_RESS])
+            return float(response)
         except Exception:
             raise Exception("Argumentos inválidos!")
         
@@ -128,9 +142,9 @@ class Client:
         """
         response = self.__send_request(DIV, args)
         try:
-            return float(response[JSON_KEY_RESS])
+            return float(response)
         except Exception:
-            if response[JSON_KEY_RESS] == ERR_DIV_BY_ZERO:
+            if response == ERR_DIV_BY_ZERO:
                 raise ZeroDivisionError("Impossível dividir por zero!")
             else:
                 raise Exception("Argumentos inválidos!")
@@ -145,7 +159,7 @@ class Client:
         """
         response = self.__send_request(PRIME, args)
         try:
-            return response[JSON_KEY_RESS]
+            return response
         except Exception:
             raise Exception("Argumentos inválidos!")
         
@@ -160,7 +174,7 @@ class Client:
         """
         response = self.__send_request(MULTIPROCESS_PRIME, args)
         try:
-            return response[JSON_KEY_RESS]
+            return response
         except Exception:
             raise Exception("Argumentos inválidos!")
 
@@ -178,7 +192,7 @@ class Server:
         """
         self.port = port
         self.server_socket = None
-        self.operation_mapping = {
+        self.task_mapping = {
             SUM: self.__sum_task,
             SUB: self.__sub_task,
             MUL: self.__mul_task,
@@ -245,11 +259,11 @@ class Server:
                     task, args = self.__decode_request_message(message)
                     if task == END:
                         break
-                    if task not in self.operation_mapping:
+                    if task not in self.task_mapping:
                         connection_socket.sendall(ERR.encode(connection.STD_ENCODE))
                         continue
                     
-                    connection.send_socket_message(connection_socket, self.operation_mapping[task](*args))
+                    connection.send_socket_message(connection_socket, self.task_mapping[task](*args))
                 else:
                     break
         print(f"{address[0]} desconectou\n")
