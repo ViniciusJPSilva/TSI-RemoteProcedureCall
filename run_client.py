@@ -6,32 +6,37 @@ def test_client() -> None:
     try:
         client = Client()
 
-        print(client.sum(5, 5.5, 5.55))
-        print(client.sum(5, 5.5, 5.55))
-        print(client.mul(1, 2, 3, 4, 5))
-        print(client.mul(1, 2, 3, 4))
-        print(client.sum(15.99, 0.001))
-        print(client.sum(15.99, 0.01))
+        # client.sum(5, 5.5, 5.55)
+        # client.sum(5, 5.5, 5.55)
+        # client.mul(1, 2, 3, 4, 5)
+        # client.mul(1, 2, 3, 4)
+        # client.sum(15.99, 0.001)
+        # client.sum(15.99, 0.01)
+        # try:
+        #     client.div(5, 5.5, 0)
+        # except ZeroDivisionError:
+        #     pass
+        # client.div(5, 5.5)
+        # client.div(5, 5.5)
+        # client.sum(5, 5.5, 5.55)
+        # client.sub(5, 5.5, -6)
+        # client.sum(5, 5.5, 5.55)
+        # client.div(100, 10)
+        # client.mul(1, 2, 3, 4, 5)
+        # client.sum(5, 5.5, 5.56)
+        # client.sub(5, 5.5, -6)
+        # client.sub(5, 5.5, 6)
+        # client.is_prime(1, 2, 3, 4, 5, 6)
+        # client.is_prime(1, 2, 3, 4, 5, 6)
+        # client.is_prime_multiprocess(1, 2, 3, 4, 5, 6)
+        # client.is_prime_multiprocess(1, 2, 3, 4, 5)
+        
         try:
-            print(client.div(5, 5.5, 0))
-        except ZeroDivisionError:
+            while True:
+                print("Soma = " + str(client.sum(int(input("1° Nro: ")), int(input("2° Nro: ")))) + "\n\n")
+                print(f"\n\nCACHE:\n{json.dumps(client.cache.cache, indent = 5)}")
+        except KeyboardInterrupt:
             pass
-        print(client.div(5, 5.5))
-        print(client.div(5, 5.5))
-        print(client.sum(5, 5.5, 5.55))
-        print(client.sub(5, 5.5, -6))
-        print(client.sum(5, 5.5, 5.55))
-        print(client.div(100, 10))
-        print(client.mul(1, 2, 3, 4, 5))
-        print(client.sum(5, 5.5, 5.56))
-        print(client.sub(5, 5.5, -6))
-        print(client.sub(5, 5.5, 6))
-        print(client.is_prime(1, 2, 3, 4, 5, 6))
-        print(client.is_prime(1, 2, 3, 4, 5, 6))
-        print(client.is_prime_multiprocess(1, 2, 3, 4, 5, 6))
-        print(client.is_prime_multiprocess(1, 2, 3, 4, 5))
-
-        print(json.dumps(client.cache.cache, indent = 5))
         
         client.close()
     except ConnectionError:

@@ -1,9 +1,34 @@
+import pickle
 from typing import Any
 
 class Cache:
-    def __init__(self, max_items: int):
-        self.cache = {}
+    def __init__(self, max_items: int, cache: dict = {}):
+        self.cache = cache
         self.max_items = max_items
+
+
+    @staticmethod
+    def init_using_file(file_name: str, max_items: int) -> 'Cache':
+        cache = None
+        try:
+            with open(file_name, 'rb') as cache_file: 
+                data = pickle.load(cache_file)
+            cache = Cache(max_items, data)
+        except Exception as e:
+            cache = Cache(max_items)
+        
+        return cache
+
+
+    @staticmethod
+    def persist_cache_file(cache: 'Cache', file_name: str) -> bool:
+        try:
+            with open(file_name, 'wb') as cache_file: 
+                pickle.dump(cache.cache, cache_file)
+            return True
+        except TypeError:
+            return False
+        
 
     def create_key(self, task: str, args: Any) -> str:
         """

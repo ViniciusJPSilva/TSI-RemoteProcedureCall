@@ -24,3 +24,10 @@ O servidor RPC deverá conter as operações básicas de soma, subtração, mult
 Implementação um sistema de cache em memória no cliente para todas as operações do RPC.
 
 <hr>
+
+## Semana 4
+
+1) Crie uma constante de código que defina o tempo mínimo para a sincronização do cache em memória com o cache em disco.
+2) Crie uma constante de código que defina o número máximo de registros armazenados no cache em disco. Caso seu tamanho ultrapasse esse valor, os registros mais antigos deverão ser substituídos pelos registros mais novos.
+
+<hr>

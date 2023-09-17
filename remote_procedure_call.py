@@ -2,6 +2,8 @@ import connection
 import threading
 import json
 import multiprocessing
+import time
+import pickle
 from cache import Cache
 import mathematics as math
 from typing import Tuple, Any, List
@@ -24,6 +26,9 @@ JSON_KEY_RESS = "result"
 
 MAX_ITEMS_CACHE = 10
 
+CACHE_LOG_FILE = "./cache/cache_log.bin"
+CACHE_PERSIST_TIME = 0.5 #Em minutos
+
 class Client:
     """
     Classe para criar um cliente que se conecta 
@@ -45,7 +50,8 @@ class Client:
             self.client_socket = connection.create_client_connection(server_ip, server_port)
         except:
             raise ConnectionError("Erro ao se conectar ao servidor!")
-        self.cache = Cache(MAX_ITEMS_CACHE)
+        self.cache = Cache.init_using_file(CACHE_LOG_FILE, MAX_ITEMS_CACHE)
+        self.last_cache_persistence = None
 
 
     def __del__(self):
@@ -57,10 +63,12 @@ class Client:
 
     def close(self):
         """
-        Fecha a conexão do cliente com o servidor.
+        Persiste o cache e fecha a conexão do cliente com o servidor.
         """
+        self.__persist_cache()
         if self.client_socket:
             self.client_socket.close()
+        
 
 
     def __send_request(self, task: str, args):
@@ -73,8 +81,8 @@ class Client:
         """
         cache_key = self.cache.create_key(task if task not in [PRIME, MULTIPROCESS_PRIME] else PRIME, args)
         response = self.cache.verify_cache(cache_key)
-
-        if not response:
+        print(response)
+        if response == None:
             request_str = json.dumps({
                     JSON_KEY_TASK: task,
                     JSON_KEY_ARGS: args
@@ -85,10 +93,22 @@ class Client:
             response = json.loads(response_str)[JSON_KEY_RESS]
 
             if response not in [ERR, ERR_DIV_BY_ZERO]:
+                print("\nAdicionado ao cache!")
                 self.cache.add_in_cache(cache_key, response)
+                if self.__timed_persist_cache():
+                    print("\nPersistido também!")
 
         return response
     
+
+    def __timed_persist_cache(self) -> bool:
+        now = time.time()
+        if (not self.last_cache_persistence) or (now - self.last_cache_persistence >= CACHE_PERSIST_TIME * 60):
+            self.last_cache_persistence = now
+            return self.__persist_cache()
+    
+    def __persist_cache(self) -> bool:
+        return Cache.persist_cache_file(self.cache, CACHE_LOG_FILE)
 
     def sum(self, *args: float) -> float:
         """
@@ -275,7 +295,8 @@ class Server:
 
         :param args: Números a serem somados.
         :return: Resultado da soma.
-        """        
+        """       
+        print("Somou") 
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.add(args)
@@ -362,7 +383,7 @@ class Server:
             return json.dumps(result)
     
 
-    def __decode_request_message(self, request_message: str) -> (str, Any):
+    def __decode_request_message(self, request_message: str) -> Tuple[str, Any]:
         """
         Decodifica uma mensagem de solicitação JSON.
 
