@@ -3,9 +3,11 @@ import threading
 import json
 import multiprocessing
 import time
-import pickle
+import math
+import mathematics
+import concurrent.futures
 from cache import Cache
-import mathematics as math
+from web_scraping import get_links
 from typing import Tuple, Any, List
 
 SUM = "__SUM__"
@@ -14,6 +16,7 @@ MUL = "__MUL__"
 DIV = "__DIV__"
 PRIME = "__PRIME__"
 MULTIPROCESS_PRIME = "__MUL_PROC_PRIME__"
+LAST_NEWS_IF_BQ = "__LAST_NEWS_IF_BQ__"
 
 END = "__END__"
 
@@ -28,6 +31,9 @@ MAX_ITEMS_CACHE = 10
 
 CACHE_LOG_FILE = "./cache/cache_log.bin"
 CACHE_PERSIST_TIME = 0.5 #Em minutos
+
+NEWS_URL = "https://www.ifsudestemg.edu.br/noticias/barbacena/?b_start:int={}"
+NEWS_IN_PAGE = 20
 
 class Client:
     """
@@ -81,7 +87,7 @@ class Client:
         """
         cache_key = self.cache.create_key(task if task not in [PRIME, MULTIPROCESS_PRIME] else PRIME, args)
         response = self.cache.verify_cache(cache_key)
-        print(response)
+        
         if response == None:
             request_str = json.dumps({
                     JSON_KEY_TASK: task,
@@ -93,10 +99,8 @@ class Client:
             response = json.loads(response_str)[JSON_KEY_RESS]
 
             if response not in [ERR, ERR_DIV_BY_ZERO]:
-                print("\nAdicionado ao cache!")
                 self.cache.add_in_cache(cache_key, response)
-                if self.__timed_persist_cache():
-                    print("\nPersistido também!")
+                self.__timed_persist_cache()
 
         return response
     
@@ -198,6 +202,13 @@ class Client:
         except Exception:
             raise Exception("Argumentos inválidos!")
 
+    def last_news_if_barbacena(self, count: int) -> List[Tuple[str, str]]:
+        response = self.__send_request(LAST_NEWS_IF_BQ, [count])
+        try:
+            return response
+        except Exception:
+            raise Exception("Argumentos inválidos!")
+
 
 class Server:
     """
@@ -219,6 +230,7 @@ class Server:
             DIV: self.__div_task,
             PRIME: self.__is_prime_task,
             MULTIPROCESS_PRIME: self.__is_prime_multiprocessing_task,
+            LAST_NEWS_IF_BQ: self.__get_last_news_if_barbacena_task,
         }
 
 
@@ -299,7 +311,7 @@ class Server:
         print("Somou") 
         result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.add(args)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mathematics.add(args)
         finally:
             return json.dumps(result)
         
@@ -313,7 +325,7 @@ class Server:
         """        
         result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.sub(args)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mathematics.sub(args)
         finally:
             return json.dumps(result)
         
@@ -327,7 +339,7 @@ class Server:
         """
         result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.mul(args)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mathematics.mul(args)
         finally:
             return json.dumps(result)
     
@@ -341,7 +353,7 @@ class Server:
         """
         result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else math.div(args)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mathematics.div(args)
         except ZeroDivisionError:
             result[JSON_KEY_RESS] = ERR_DIV_BY_ZERO
         finally:
@@ -358,7 +370,7 @@ class Server:
         result = { JSON_KEY_RESS: ERR }
         try:
             res = []
-            [res.append((number, math.is_prime(number))) for number in args]
+            [res.append((number, mathematics.is_prime(number))) for number in args]
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else res
         finally:
             return json.dumps(result)
@@ -373,7 +385,7 @@ class Server:
         """
         pool = multiprocessing.Pool()
         try:
-            results = pool.map(math.is_prime, args)
+            results = pool.map(mathematics.is_prime, args)
             result = {JSON_KEY_RESS: ERR if len(args) < 1 else list(zip(args, results))}
         except Exception as e:
             result = {JSON_KEY_RESS: ERR}
@@ -381,6 +393,41 @@ class Server:
             pool.close()
             pool.join()
             return json.dumps(result)
+
+
+    def __get_last_news_if_barbacena_task(self, *args) -> str:
+        """
+        Obtém as últimas notícias do IFET Campus Barbacena, se disponíveis, e retorna os links em uma string JSON.
+
+        :param args: Uma lista contendo a quantidade de links solicitados como o primeiro elemento.
+        :return: Uma string JSON contendo os links das últimas notícias de Barbacena.
+        """
+        quantity_requested = int(args[0])
+        num_pages = math.ceil(quantity_requested / NEWS_IN_PAGE)
+
+        links_list = []
+
+        # for i in range(0, num_pages * NEWS_IN_PAGE, 20):
+        #     request_result = get_links(NEWS_URL.format(i), "summary url")
+        #     if request_result:
+        #         links_list = [*links_list, *request_result]
+
+        def get_links_from_page(page_number):
+            return get_links(NEWS_URL.format(page_number), "summary url")
+
+        # Usando ThreadPoolExecutor para executar as solicitações em paralelo
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            page_numbers = range(0, num_pages * NEWS_IN_PAGE, 20)
+            futures = {executor.submit(get_links_from_page, page_number): page_number for page_number in page_numbers}
+
+            for future in concurrent.futures.as_completed(futures):
+                page_number = futures[future]
+                request_result = future.result()
+                if request_result:
+                    links_list.extend(request_result)
+
+        return json.dumps({JSON_KEY_RESS: links_list[0:quantity_requested]})
+
     
 
     def __decode_request_message(self, request_message: str) -> Tuple[str, Any]:

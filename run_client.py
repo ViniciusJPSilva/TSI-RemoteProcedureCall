@@ -2,7 +2,24 @@ from remote_procedure_call import Client
 import time
 import json
 
-def test_client() -> None:
+def test_last_news() -> None:
+    try:
+        client = Client()
+
+        response = client.last_news_if_barbacena(5)
+        
+        if response:
+            count = 1
+            for link in response:
+                print(f"{count}) {link[0]}:\n\t{link[1]}\n\n")
+                count += 1
+        
+        client.close()
+    except ConnectionError:
+        print("Erro durante a conexão! Verifique se o servidor está online.")
+
+
+def test_cache() -> None:
     try:
         client = Client()
 
@@ -30,7 +47,6 @@ def test_client() -> None:
         # client.is_prime(1, 2, 3, 4, 5, 6)
         # client.is_prime_multiprocess(1, 2, 3, 4, 5, 6)
         # client.is_prime_multiprocess(1, 2, 3, 4, 5)
-        
         try:
             while True:
                 print("Soma = " + str(client.sum(int(input("1° Nro: ")), int(input("2° Nro: ")))) + "\n\n")
@@ -41,7 +57,8 @@ def test_client() -> None:
         client.close()
     except ConnectionError:
         print("Erro durante a conexão! Verifique se o servidor está online.")
-    
+
+
 def test_multiprocess() -> None:
     client = Client()
     values = [i for i in range(10, 5000001)]
@@ -69,5 +86,13 @@ def test_multiprocess() -> None:
 
 
 if __name__ == "__main__":
-    test_client()
+    start = time.time()
+
+    test_last_news()
+
+    end = time.time()
+
+    print(f"A função levou {end - start} segundos para ser executada.")
+
+    
     

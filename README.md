@@ -31,3 +31,16 @@ Implementação um sistema de cache em memória no cliente para todas as operaç
 2) Crie uma constante de código que defina o número máximo de registros armazenados no cache em disco. Caso seu tamanho ultrapasse esse valor, os registros mais antigos deverão ser substituídos pelos registros mais novos.
 
 <hr>
+
+## Semana 5
+
+Desenvolva a operação remota:
+
+last_news_if_barbacena(qtd_noticias : int) -> []
+
+1) A operação deverá coletar os títulos das qtd_noticias mais recentes da página de notícias do Campus Barbacena: https://www.ifsudestemg.edu.br/noticias/barbacena/?b_start:int=0
+2) As operação deverá utilizar o mesmo mecanismo de cache das demais.
+3) Altere a operação de modo que a coleta das diversas páginas de notícias seja realizada com paralelismo.
+4) Reflita sobre o problema em se utilizar o mesmo mecanismo de cache das outras operações.
+
+<hr>
