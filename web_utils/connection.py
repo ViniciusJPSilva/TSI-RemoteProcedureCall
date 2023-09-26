@@ -8,24 +8,26 @@ STD_ENCODE = "UTF-8"
 STD_BYTE_ORDER = "big"
 DATA_LENGTH_RESERVED_BYTES = 4
 
-def create_server_connection(port: int = STD_PORT) -> socket.socket:
+def create_server_connection(port: int = STD_PORT, is_tcp: bool = True) -> socket.socket:
     """
     Cria e configura um socket do servidor.
 
     :param port: Número da porta do servidor.
     :return: Socket do servidor configurado.
     """
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM if is_tcp else socket.SOCK_DGRAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind(("", port))
-    server_socket.listen(0)
+
+    if is_tcp:
+        server_socket.listen(0)
 
     return server_socket
 
 # create_server_connection()
 
 
-def create_client_connection(server_ip: str, port: int = STD_PORT) -> socket.socket:
+def create_client_connection(server_ip: str, port: int = STD_PORT, is_tcp: bool = True) -> socket.socket:
     """
     Cria uma conexão de cliente para o servidor.
 
@@ -33,8 +35,9 @@ def create_client_connection(server_ip: str, port: int = STD_PORT) -> socket.soc
     :param port: Número da porta do servidor.
     :return: Conexão do cliente.
     """
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((server_ip, port))
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM if is_tcp else socket.SOCK_DGRAM)
+    if is_tcp:
+        client_socket.connect((server_ip, port))
 
     return client_socket
 

@@ -1,4 +1,4 @@
-from remote_procedure_call import Server
+from rpc.server import Server
 
 def start_server() -> None:
     try: 

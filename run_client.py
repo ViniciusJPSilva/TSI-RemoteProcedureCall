@@ -1,4 +1,4 @@
-from remote_procedure_call import Client
+from rpc.client import Client
 import time
 import json
 
@@ -6,10 +6,10 @@ def test_last_news() -> None:
     try:
         client = Client()
 
-        response = client.last_news_if_barbacena(7)
-        response = client.last_news_if_barbacena(7)
-        time.sleep(11)
-        response = client.last_news_if_barbacena(7)
+        response = client.last_news_if_barbacena(31)
+        response = client.last_news_if_barbacena(14)
+        # time.sleep(11)
+        # response = client.last_news_if_barbacena(7)
         
         if response:
             count = 1
