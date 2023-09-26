@@ -30,7 +30,11 @@ JSON_KEY_RESS = "result"
 MAX_ITEMS_CACHE = 10
 
 CACHE_LOG_FILE = "./cache/cache_log.bin"
+WEB_CACHE_LOG_FILE = "./cache/web_cache_log.bin"
+
 CACHE_PERSIST_TIME = 0.5 #Em minutos
+
+WEB_SCRAPING_TIME_LIMIT = 0.1
 
 NEWS_URL = "https://www.ifsudestemg.edu.br/noticias/barbacena/?b_start:int={}"
 NEWS_IN_PAGE = 20
@@ -57,7 +61,9 @@ class Client:
         except:
             raise ConnectionError("Erro ao se conectar ao servidor!")
         self.cache = Cache.init_using_file(CACHE_LOG_FILE, MAX_ITEMS_CACHE)
+        self.web_cache = Cache.init_using_file(WEB_CACHE_LOG_FILE, 1)
         self.last_cache_persistence = None
+        self.last_web_query = None
 
 
     def __del__(self):
@@ -98,21 +104,35 @@ class Client:
             response_str = connection.receive_socket_message(self.client_socket)
             response = json.loads(response_str)[JSON_KEY_RESS]
 
-            if response not in [ERR, ERR_DIV_BY_ZERO]:
+            if response not in [ERR, ERR_DIV_BY_ZERO] and task not in [LAST_NEWS_IF_BQ]:
                 self.cache.add_in_cache(cache_key, response)
-                self.__timed_persist_cache()
+            
+            self.__timed_persist_cache()
 
         return response
     
 
     def __timed_persist_cache(self) -> bool:
+        """
+        Verifica se é necessário persistir o cache com base no tempo e chama a função de persistência, se necessário.
+
+        :return: True se o cache foi persistido, False caso contrário.
+        """
         now = time.time()
         if (not self.last_cache_persistence) or (now - self.last_cache_persistence >= CACHE_PERSIST_TIME * 60):
             self.last_cache_persistence = now
             return self.__persist_cache()
     
+    
     def __persist_cache(self) -> bool:
+        """
+        Persiste o cache em arquivos e registra a operação em um log.
+
+        :return: True se a persistência do cache for bem-sucedida, False caso contrário.
+        """
+        Cache.persist_cache_file(self.web_cache, WEB_CACHE_LOG_FILE)
         return Cache.persist_cache_file(self.cache, CACHE_LOG_FILE)
+
 
     def sum(self, *args: float) -> float:
         """
@@ -202,12 +222,47 @@ class Client:
         except Exception:
             raise Exception("Argumentos inválidos!")
 
+
     def last_news_if_barbacena(self, count: int) -> List[Tuple[str, str]]:
-        response = self.__send_request(LAST_NEWS_IF_BQ, [count])
+        """
+        Envia uma solicitação de webscraping no site de noticias do IFET Barbacena e retorna o resultado.
+
+        :param args: Números de noticias requeridas.
+        :return: Lista com o titulo e o link das respectivas noticias, em uma tupla.
+        """
+        response = self.__get_web_cache(count)
+        if not response:
+            response = self.__send_request(LAST_NEWS_IF_BQ, [count])
+            self.web_cache.clear()
+            self.web_cache.add_in_cache(str(count), response)
+
         try:
             return response
         except Exception:
             raise Exception("Argumentos inválidos!")
+
+
+    def __get_web_cache(self, count: int) -> List[Tuple[str, str]]:
+        """
+        Obtém os dados da web "cacheados" se estiverem disponíveis e caso atenda ao limite de tempo.
+
+        :param count: O número máximo de itens a serem obtidos do cache da web.
+        :return: Lista com o titulo e o link das respectivas noticias, em uma tupla. (ou None se não disponíveis ou no limite de tempo).
+        """
+        now = time.time()
+        if (not self.last_web_query) or (now - self.last_web_query >= WEB_SCRAPING_TIME_LIMIT * 60):
+            self.last_web_query = now
+        else:
+            web_cache = self.web_cache.get()
+            if web_cache:
+                key = list(web_cache.keys())[0]
+                total_links = int(key)
+            
+                if total_links >= count:
+                    return web_cache[key][0:count]
+        
+        return None
+
 
 
 class Server:
@@ -425,7 +480,7 @@ class Server:
                 request_result = future.result()
                 if request_result:
                     links_list.extend(request_result)
-
+        print("Webscrapou")
         return json.dumps({JSON_KEY_RESS: links_list[0:quantity_requested]})
 
     

@@ -44,3 +44,10 @@ last_news_if_barbacena(qtd_noticias : int) -> []
 4) Reflita sobre o problema em se utilizar o mesmo mecanismo de cache das outras operações.
 
 <hr>
+
+## Semana 6
+
+1) O mecanismo de cache de notícias deverá lidar com requisições onde o número de notícias solicitadas seja menor que um número previamente solicitado, aproveitando esses dados.
+2) O cache deverá ficar consistente com atualizações no site de notícias do IF, usando um modelo de restrição de 5 minutos.
+
+<hr>

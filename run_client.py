@@ -6,14 +6,18 @@ def test_last_news() -> None:
     try:
         client = Client()
 
-        response = client.last_news_if_barbacena(5)
+        response = client.last_news_if_barbacena(7)
+        response = client.last_news_if_barbacena(7)
+        time.sleep(11)
+        response = client.last_news_if_barbacena(7)
         
         if response:
             count = 1
             for link in response:
                 print(f"{count}) {link[0]}:\n\t{link[1]}\n\n")
                 count += 1
-        
+        # print(f"Total = {count-1}")
+        # print(f"Resultado: {client.sum(1, 2, 3)}")
         client.close()
     except ConnectionError:
         print("Erro durante a conexão! Verifique se o servidor está online.")
