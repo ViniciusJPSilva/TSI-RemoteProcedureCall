@@ -1,16 +1,11 @@
+import random
+from rpc import name_server
 import web_utils.connection as connection
 import json
 import time
+from rpc.tasks import *
 from cache.cache import Cache
 from typing import Tuple, Any, List
-
-SUM = "__SUM__"
-SUB = "__SUB__"
-MUL = "__MUL__"
-DIV = "__DIV__"
-PRIME = "__PRIME__"
-MULTIPROCESS_PRIME = "__MUL_PROC_PRIME__"
-LAST_NEWS_IF_BQ = "__LAST_NEWS_IF_BQ__"
 
 ERR = "__ERROR__"
 ERR_DIV_BY_ZERO = "__ERR_DIV_0__"
@@ -28,13 +23,16 @@ CACHE_PERSIST_TIME = 0.5 #Em minutos
 
 WEB_SCRAPING_TIME_LIMIT = 0.1
 
+NS_IP_INDEX = 0
+NS_PORT_INDEX = 1
+
 class Client:
     """
     Classe para criar um cliente que se conecta 
     a um servidor remoto para executar operações.
     """
 
-    def __init__(self, server_ip: str = connection.LOCAL_HOST, 
+    def __init__(self, name_server: Tuple[str, int], server_ip: str = connection.LOCAL_HOST, 
                  server_port: int = connection.STD_PORT):
         """
         Inicializa um cliente com o endereço do servidor e o número da porta.
@@ -44,11 +42,9 @@ class Client:
         """
         self.server_ip = server_ip
         self.server_port = server_port
+        self.name_server = name_server
+        self.udp_socket = connection.create_client_connection(is_tcp = False)
         self.client_socket = None
-        try:
-            self.client_socket = connection.create_client_connection(server_ip, server_port)
-        except:
-            raise ConnectionError("Erro ao se conectar ao servidor!")
         self.cache = Cache.init_using_file(CACHE_LOG_FILE, MAX_ITEMS_CACHE)
         self.web_cache = Cache.init_using_file(WEB_CACHE_LOG_FILE, 1)
         self.last_cache_persistence = None
@@ -69,8 +65,20 @@ class Client:
         self.__persist_cache()
         if self.client_socket:
             self.client_socket.close()
-        
 
+        if self.udp_socket:
+            self.udp_socket.close()
+    
+
+    def __connect_server(self, server_data: Tuple[str, int]) -> None:
+        try:
+            self.client_socket = connection.create_client_connection(*server_data)
+        except:
+            raise ConnectionError("Erro ao se conectar ao servidor!")
+        
+    def __get_servers(self, task: str) -> List[Tuple[str, int]]:
+        connection.send_udp_socket_message(self.udp_socket, task, self.name_server)
+        return connection.receive_udp_socket_message(self.udp_socket)[0].decode()
 
     def __send_request(self, task: str, args):
         """
@@ -80,6 +88,7 @@ class Client:
         :param args: Argumentos para a operação.
         :return: A resposta do servidor após processar a solicitação.
         """
+
         cache_key = self.cache.create_key(task if task not in [PRIME, MULTIPROCESS_PRIME] else PRIME, args)
         response = self.cache.verify_cache(cache_key)
         
@@ -88,6 +97,15 @@ class Client:
                     JSON_KEY_TASK: task,
                     JSON_KEY_ARGS: args
                 })
+            
+            # Tentando obter os dados pelo servidor de nomes.
+            servers_list = json.loads(self.__get_servers(task))
+            
+            if len(servers_list) == 0:
+                raise Exception("Nenhum servidor encontrado!")
+            
+            self.__connect_server(random.choice(servers_list))
+
             connection.send_socket_message(self.client_socket, request_str)
 
             response_str = connection.receive_socket_message(self.client_socket)
@@ -97,6 +115,7 @@ class Client:
                 self.cache.add_in_cache(cache_key, response)
             
             self.__timed_persist_cache()
+            self.client_socket.close()
 
         return response
     

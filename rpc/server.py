@@ -3,18 +3,11 @@ import threading
 import json
 import multiprocessing
 import math
-import mathematics.mathematics
+from mathematics.mathematics import *
 import concurrent.futures
+from rpc.tasks import *
 from web_utils.web_scraping import get_links
 from typing import Tuple, Any, List
-
-SUM = "__SUM__"
-SUB = "__SUB__"
-MUL = "__MUL__"
-DIV = "__DIV__"
-PRIME = "__PRIME__"
-MULTIPROCESS_PRIME = "__MUL_PROC_PRIME__"
-LAST_NEWS_IF_BQ = "__LAST_NEWS_IF_BQ__"
 
 END = "__END__"
 
@@ -33,12 +26,13 @@ class Server:
     Classe para criar um servidor que aceita conexões de clientes e executa operações.
     """
 
-    def __init__(self, port: int = connection.STD_PORT):
+    def __init__(self, ip: str = connection.LOCAL_HOST, port: int = connection.STD_PORT):
         """
         Inicializa um servidor com o número da porta.
 
         :param port: Número da porta do servidor.
         """
+        self.ip = ip
         self.port = port
         self.server_socket = None
         self.task_mapping = {
@@ -64,7 +58,7 @@ class Server:
         """
         Inicia o servidor e espera por conexões de clientes.
         """
-        self.server_socket = connection.create_server_connection(self.port)
+        self.server_socket = connection.create_server_connection(self.ip, self.port)
         print(f"O servidor está ouvindo na porta {self.port}...")
         connected_clients_threads = []
         try:
@@ -129,8 +123,11 @@ class Server:
         print("Somou") 
         result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mathematics.add(args)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else add(args)
+        except Exception as e:
+            print(e)
         finally:
+            print(result)
             return json.dumps(result)
         
     
@@ -143,7 +140,7 @@ class Server:
         """        
         result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mathematics.sub(args)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else sub(args)
         finally:
             return json.dumps(result)
         
@@ -157,7 +154,7 @@ class Server:
         """
         result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mathematics.mul(args)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mul(args)
         finally:
             return json.dumps(result)
     
@@ -171,7 +168,7 @@ class Server:
         """
         result = { JSON_KEY_RESS: ERR }
         try:
-            result[JSON_KEY_RESS] = ERR if len(args) < 1 else mathematics.div(args)
+            result[JSON_KEY_RESS] = ERR if len(args) < 1 else div(args)
         except ZeroDivisionError:
             result[JSON_KEY_RESS] = ERR_DIV_BY_ZERO
         finally:
@@ -188,7 +185,7 @@ class Server:
         result = { JSON_KEY_RESS: ERR }
         try:
             res = []
-            [res.append((number, mathematics.is_prime(number))) for number in args]
+            [res.append((number, is_prime(number))) for number in args]
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else res
         finally:
             return json.dumps(result)
@@ -203,7 +200,7 @@ class Server:
         """
         pool = multiprocessing.Pool()
         try:
-            results = pool.map(mathematics.is_prime, args)
+            results = pool.map(is_prime, args)
             result = {JSON_KEY_RESS: ERR if len(args) < 1 else list(zip(args, results))}
         except Exception as e:
             result = {JSON_KEY_RESS: ERR}

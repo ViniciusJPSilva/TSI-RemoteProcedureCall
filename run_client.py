@@ -1,10 +1,11 @@
+from rpc import name_server
 from rpc.client import Client
 import time
 import json
 
 def test_last_news() -> None:
     try:
-        client = Client()
+        client = Client((name_server.NAME_SERVER_STD_ADDR))
 
         response = client.last_news_if_barbacena(31)
         response = client.last_news_if_barbacena(14)
@@ -25,7 +26,7 @@ def test_last_news() -> None:
 
 def test_cache() -> None:
     try:
-        client = Client()
+        client = Client((name_server.NAME_SERVER_STD_ADDR))
 
         # client.sum(5, 5.5, 5.55)
         # client.sum(5, 5.5, 5.55)
@@ -92,7 +93,7 @@ def test_multiprocess() -> None:
 if __name__ == "__main__":
     start = time.time()
 
-    test_last_news()
+    test_cache()
 
     end = time.time()
 

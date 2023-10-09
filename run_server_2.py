@@ -1,8 +1,9 @@
 from rpc.server import Server
+from rpc.servers_list import SERVERS_LIST
 
 def start_server() -> None:
     try: 
-        server = Server()
+        server = Server(port = SERVERS_LIST[1][1])
         server.start()
     except KeyboardInterrupt:
         server.close()
