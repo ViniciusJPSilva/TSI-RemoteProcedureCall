@@ -3,8 +3,11 @@ from rpc import name_server
 import web_utils.connection as connection
 import json
 import time
+import socket
 from rpc.tasks import *
+from rpc.rpc_exceptions import *
 from cache.cache import Cache
+from functools import wraps
 from typing import Tuple, Any, List
 
 ERR = "__ERROR__"
@@ -25,6 +28,40 @@ WEB_SCRAPING_TIME_LIMIT = 0.1
 
 NS_IP_INDEX = 0
 NS_PORT_INDEX = 1
+
+def handle_rpc_exceptions(func):
+    """
+    Decorador para capturar exceções e relançá-las sem fazer nenhum tratamento adicional.
+
+    Este decorador envolve uma função e captura exceções específicas, como ConnectionError e ValueError,
+    relançando-as sem fazer tratamento adicional. Pode ser usado para padronizar a manipulação de exceções
+    em funções decoradas.
+
+    :param func: A função que será decorada.
+    :return: Uma função decorada que captura e relança exceções.
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ConnectionError as ce:
+            raise ce from None
+        except ServerNotRespondingError as snre:
+            raise snre from None
+        except ServerTimeoutError as ste:
+            raise ste from None
+        except NoServersFoundError as nsfe:
+            raise nsfe from None
+        except InvalidArguments as ia:
+            raise ia from None
+        except ZeroDivisionError as zde:
+            raise zde from None
+        except Exception as e:
+            raise e
+
+    return wrapper
+
 
 class Client:
     """
@@ -71,14 +108,48 @@ class Client:
     
 
     def __connect_server(self, server_data: Tuple[str, int]) -> None:
+        """
+        Estabelece uma conexão com um servidor remoto com base nos dados fornecidos.
+
+        :param server_data: Uma tupla contendo o endereço IP e a porta do servidor.
+        :type server_data: Tuple[str, int]
+
+        :raises ConnectionError: Lança uma exceção se ocorrer um erro ao se conectar ao servidor.
+        """
         try:
             self.client_socket = connection.create_client_connection(*server_data)
         except:
             raise ConnectionError("Erro ao se conectar ao servidor!")
         
+        
     def __get_servers(self, task: str) -> List[Tuple[str, int]]:
-        connection.send_udp_socket_message(self.udp_socket, task, self.name_server)
-        return connection.receive_udp_socket_message(self.udp_socket)[0].decode()
+        """
+        Envia uma solicitação de tarefa para os servidores, recebe uma lista de servidores disponíveis como resposta e a retorna.
+
+        :param task: A tarefa que será enviada aos servidores.
+        :type task: str
+        :return: Uma lista de tuplas contendo o endereço IP e a porta dos servidores disponíveis.
+        :rtype: List[Tuple[str, int]]
+
+        :raises ServerTimeoutError: Lança uma exceção se ocorrer um timeout na comunicação com o servidor.
+        :raises ServerNotRespondingError: Lança uma exceção se o servidor não responder à solicitação.
+        """
+        try:
+            # Timeout.
+            self.udp_socket.settimeout(5.0)
+
+            connection.send_udp_socket_message(self.udp_socket, task, self.name_server)
+            response, _ = connection.receive_udp_socket_message(self.udp_socket)
+
+            # Verifique se a resposta não está vazia
+            if response:
+                return response.decode()
+            else:
+                raise ServerNotRespondingError()
+
+        except socket.timeout:
+            raise ServerTimeoutError()
+        
 
     def __send_request(self, task: str, args):
         """
@@ -102,7 +173,7 @@ class Client:
             servers_list = json.loads(self.__get_servers(task))
             
             if len(servers_list) == 0:
-                raise Exception("Nenhum servidor encontrado!")
+                raise NoServersFoundError("Nenhum servidor encontrado!")
             
             self.__connect_server(random.choice(servers_list))
 
@@ -110,6 +181,9 @@ class Client:
 
             response_str = connection.receive_socket_message(self.client_socket)
             response = json.loads(response_str)[JSON_KEY_RESS]
+
+            if response == ERR:
+                raise InvalidArguments()
 
             if response not in [ERR, ERR_DIV_BY_ZERO] and task not in [LAST_NEWS_IF_BQ]:
                 self.cache.add_in_cache(cache_key, response)
@@ -142,6 +216,7 @@ class Client:
         return Cache.persist_cache_file(self.cache, CACHE_LOG_FILE)
 
 
+    @handle_rpc_exceptions
     def sum(self, *args: float) -> float:
         """
         Envia uma solicitação de soma para o servidor e retorna o resultado.
@@ -149,13 +224,10 @@ class Client:
         :param args: Números a serem somados.
         :return: Resultado da soma.
         """
-        response = self.__send_request(SUM, args)
-        try:
-            return float(response)
-        except Exception:
-            raise Exception("Argumentos inválidos!")
+        return float(self.__send_request(SUM, args))
         
 
+    @handle_rpc_exceptions
     def sub(self, *args: float) -> float:
         """
         Envia uma solicitação de subtração para o servidor e retorna o resultado.
@@ -163,14 +235,10 @@ class Client:
         :param args: Números a serem usados na subtração.
         :return: Resultado da subtração.
         """
-        response = self.__send_request(SUB, args)
+        return float(self.__send_request(SUB, args))
         
-        try:
-            return float(response)
-        except Exception as error:
-            raise Exception("Argumentos inválidos!")
-        
-        
+
+    @handle_rpc_exceptions    
     def mul(self, *args: float) -> float:
         """
         Envia uma solicitação de multiplicação para o servidor e retorna o resultado.
@@ -178,13 +246,10 @@ class Client:
         :param args: Números a serem usados na multiplicação.
         :return: Resultado da multiplicação.
         """
-        response = self.__send_request(MUL, args)
-        try:
-            return float(response)
-        except Exception:
-            raise Exception("Argumentos inválidos!")
+        return float(self.__send_request(MUL, args))
         
 
+    @handle_rpc_exceptions
     def div(self, *args: float) -> float:
         """
         Envia uma solicitação de divisão para o servidor e retorna o resultado.
@@ -193,15 +258,14 @@ class Client:
         :return: Resultado da divisão.
         """
         response = self.__send_request(DIV, args)
-        try:
-            return float(response)
-        except Exception:
-            if response == ERR_DIV_BY_ZERO:
-                raise ZeroDivisionError("Impossível dividir por zero!")
-            else:
-                raise Exception("Argumentos inválidos!")
+        
+        if response == ERR_DIV_BY_ZERO:
+            raise ZeroDivisionError("Impossível dividir por zero!")
+        
+        return float(response)
             
-            
+
+    @handle_rpc_exceptions     
     def is_prime(self, *args: int) -> List[Tuple[int, bool]]:
         """
         Envia uma solicitação de identificação de um número primo para o servidor e retorna o resultado.
@@ -209,13 +273,10 @@ class Client:
         :param args: Números a serem identificados.
         :return: True caso seja primo, False caso contrário.
         """
-        response = self.__send_request(PRIME, args)
-        try:
-            return response
-        except Exception:
-            raise Exception("Argumentos inválidos!")
+        return self.__send_request(PRIME, args)
         
         
+    @handle_rpc_exceptions
     def is_prime_multiprocess(self, *args: int) -> List[Tuple[int, bool]]:
         """
         Envia uma solicitação de identificação de um número primo para o servidor e retorna o resultado.
@@ -224,13 +285,10 @@ class Client:
         :param args: Números a serem identificados.
         :return: True caso seja primo, False caso contrário.
         """
-        response = self.__send_request(MULTIPROCESS_PRIME, args)
-        try:
-            return response
-        except Exception:
-            raise Exception("Argumentos inválidos!")
+        return self.__send_request(MULTIPROCESS_PRIME, args)
 
 
+    @handle_rpc_exceptions
     def last_news_if_barbacena(self, count: int) -> List[Tuple[str, str]]:
         """
         Envia uma solicitação de webscraping no site de noticias do IFET Barbacena e retorna o resultado.
@@ -244,10 +302,7 @@ class Client:
             self.web_cache.clear()
             self.web_cache.add_in_cache(str(count), response)
 
-        try:
-            return response
-        except Exception:
-            raise Exception("Argumentos inválidos!")
+        return response
 
 
     def __get_web_cache(self, count: int) -> List[Tuple[str, str]]:

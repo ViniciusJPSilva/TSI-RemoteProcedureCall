@@ -51,3 +51,12 @@ last_news_if_barbacena(qtd_noticias : int) -> []
 2) O cache deverá ficar consistente com atualizações no site de notícias do IF, usando um modelo de restrição de 5 minutos.
 
 <hr>
+
+## Semanas 7 e 8
+
+1) O cliente RPC agora será instanciado recebendo o IP e a porta do servidor de nomes, e não mais do servidor de operações.
+2) A consulta ao servidor de nomes deverá ser via UDP.
+3) O servidor de nomes deverá retornar uma lista com os IPs dos servidores de operação que implementam a operação solicitada.
+4) O cliente deverá escolher um desses IPs aleatoriamente, para realizar o balanceamento de carga das requisições.
+
+<hr>

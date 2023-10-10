@@ -1,6 +1,5 @@
 SUM = "__SUM__"
 SUB = "__SUB__"
-
 MUL = "__MUL__"
 DIV = "__DIV__"
 PRIME = "__PRIME__"

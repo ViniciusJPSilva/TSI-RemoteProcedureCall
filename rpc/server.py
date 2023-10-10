@@ -120,14 +120,13 @@ class Server:
         :param args: Números a serem somados.
         :return: Resultado da soma.
         """       
-        print("Somou") 
+        print("Somou...") 
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else add(args)
         except Exception as e:
             print(e)
         finally:
-            print(result)
             return json.dumps(result)
         
     
@@ -137,7 +136,8 @@ class Server:
 
         :param args: Números a serem somados.
         :return: Resultado da soma.
-        """        
+        """   
+        print("Subtraiu...")      
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else sub(args)
@@ -152,6 +152,7 @@ class Server:
         :param args: Números a serem usados na multiplicação.
         :return: Resultado da multiplicação.
         """
+        print("Multiplicou...") 
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else mul(args)
@@ -166,6 +167,7 @@ class Server:
         :param args: Números a serem usados na multiplicação.
         :return: Resultado da multiplicação.
         """
+        print("Dividiu...") 
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else div(args)
@@ -182,6 +184,7 @@ class Server:
         :param args: Uma lista de números inteiros a serem verificados.
         :return: Uma string JSON contendo os resultados da verificação de primos para cada número.
         """
+        print("Eu vou dormir lá em cima...") 
         result = { JSON_KEY_RESS: ERR }
         try:
             res = []
@@ -198,6 +201,7 @@ class Server:
         :param args: Uma lista de números inteiros a serem verificados.
         :return: Uma string JSON contendo os resultados da verificação de primos para cada número.
         """
+        print("Eu vou dormir lá em cima... Mas tomei diversos PROCESSOS") 
         pool = multiprocessing.Pool()
         try:
             results = pool.map(is_prime, args)
@@ -217,16 +221,11 @@ class Server:
         :param args: Uma lista contendo a quantidade de links solicitados como o primeiro elemento.
         :return: Uma string JSON contendo os links das últimas notícias de Barbacena.
         """
+        print("Fofocando...") 
         quantity_requested = int(args[0])
         num_pages = math.ceil(quantity_requested / NEWS_IN_PAGE)
 
         links_list = []
-
-        # for i in range(0, num_pages * NEWS_IN_PAGE, 20):
-        #     request_result = get_links(NEWS_URL.format(i), "summary url")
-        #     if request_result:
-        #         links_list = [*links_list, *request_result]
-
         def get_links_from_page(page_number):
             return get_links(NEWS_URL.format(page_number), "summary url")
 
