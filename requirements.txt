@@ -1,0 +1,5 @@
+beautifulsoup4==4.12.2
+brotlipy==0.7.0
+bs4==0.0.1
+requests==2.28.1
+soupsieve==2.5

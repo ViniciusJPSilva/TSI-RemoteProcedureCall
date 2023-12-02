@@ -3,11 +3,15 @@ import threading
 import json
 import multiprocessing
 import math
-from mathematics.mathematics import *
 import concurrent.futures
+from datetime import datetime
+from mathematics.mathematics import *
 from rpc.tasks import *
 from web_utils.web_scraping import get_links
+from tools.cpf import CPF
+from tools.log import Log
 from typing import Tuple, Any, List
+
 
 END = "__END__"
 
@@ -18,6 +22,12 @@ JSON_KEY_TASK = "task"
 JSON_KEY_ARGS = "args"
 JSON_KEY_RESS = "result"
 
+IP_INDEX = 0
+
+LOG_FILE = "./log/{}_task_log.txt"
+LOG_LINE_MODEL = "{};{};{};{}"
+MILISECONDS = 1000
+
 NEWS_URL = "https://www.ifsudestemg.edu.br/noticias/barbacena/?b_start:int={}"
 NEWS_IN_PAGE = 20
 
@@ -26,7 +36,7 @@ class Server:
     Classe para criar um servidor que aceita conexões de clientes e executa operações.
     """
 
-    def __init__(self, ip: str = connection.LOCAL_HOST, port: int = connection.STD_PORT):
+    def __init__(self, ip: str = connection.LOCAL_HOST, port: int = connection.STD_PORT, name: str = None):
         """
         Inicializa um servidor com o número da porta.
 
@@ -34,6 +44,7 @@ class Server:
         """
         self.ip = ip
         self.port = port
+        self.name = name if name else f"{ip}_{port}"
         self.server_socket = None
         self.task_mapping = {
             SUM: self.__sum_task,
@@ -43,6 +54,7 @@ class Server:
             PRIME: self.__is_prime_task,
             MULTIPROCESS_PRIME: self.__is_prime_multiprocessing_task,
             LAST_NEWS_IF_BQ: self.__get_last_news_if_barbacena_task,
+            VALDATE_CPF: self.__validate_cpf_task
         }
 
 
@@ -95,7 +107,8 @@ class Server:
         :param connection_socket: Soquete de conexão com o cliente.
         :param address: Endereço do cliente.
         """
-        print(f"{address[0]} conectou\n")
+        print(f"{address[IP_INDEX]} conectou\n")
+        start_time = datetime.now()
         with connection_socket:
             while True:
                 message = connection.receive_socket_message(connection_socket)
@@ -107,20 +120,21 @@ class Server:
                         connection_socket.sendall(ERR.encode(connection.STD_ENCODE))
                         continue
                     
-                    connection.send_socket_message(connection_socket, self.task_mapping[task](*args))
+                    connection.send_socket_message(connection_socket, self.task_mapping[task](args))
                 else:
                     break
-        print(f"{address[0]} desconectou\n")
+        Log.write(LOG_FILE.format(self.name), LOG_LINE_MODEL.format(start_time, address[IP_INDEX], self.task_mapping[task].__name__, (datetime.now() - start_time).total_seconds() * MILISECONDS))
+        print(f"{address[IP_INDEX]} desconectou\n")
 
 
-    def __sum_task(self, *args) -> str:
+    def __sum_task(self, args) -> str:
         """
         Executa a tarefa de soma.
 
         :param args: Números a serem somados.
         :return: Resultado da soma.
         """       
-        print("Somou...") 
+        print("Somando...") 
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else add(args)
@@ -130,14 +144,14 @@ class Server:
             return json.dumps(result)
         
     
-    def __sub_task(self, *args) -> str:
+    def __sub_task(self, args) -> str:
         """
         Executa a tarefa de subtração.
 
         :param args: Números a serem somados.
         :return: Resultado da soma.
         """   
-        print("Subtraiu...")      
+        print("Subtraindo...")      
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else sub(args)
@@ -145,14 +159,14 @@ class Server:
             return json.dumps(result)
         
     
-    def __mul_task(self, *args) -> str:
+    def __mul_task(self, args) -> str:
         """
         Executa a tarefa de multiplicação.
 
         :param args: Números a serem usados na multiplicação.
         :return: Resultado da multiplicação.
         """
-        print("Multiplicou...") 
+        print("Multiplicando...") 
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else mul(args)
@@ -160,14 +174,14 @@ class Server:
             return json.dumps(result)
     
 
-    def __div_task(self, *args) -> str:
+    def __div_task(self, args) -> str:
         """
         Executa a tarefa de multiplicação.
 
         :param args: Números a serem usados na multiplicação.
         :return: Resultado da multiplicação.
         """
-        print("Dividiu...") 
+        print("Dividindo...") 
         result = { JSON_KEY_RESS: ERR }
         try:
             result[JSON_KEY_RESS] = ERR if len(args) < 1 else div(args)
@@ -177,14 +191,14 @@ class Server:
             return json.dumps(result)
         
         
-    def __is_prime_task(self, *args) -> str:
+    def __is_prime_task(self, args) -> str:
         """
         Verifica se os números fornecidos são primos e retorna o resultado como uma string JSON.
 
         :param args: Uma lista de números inteiros a serem verificados.
         :return: Uma string JSON contendo os resultados da verificação de primos para cada número.
         """
-        print("Eu vou dormir lá em cima...") 
+        print("Verificando números primos...") 
         result = { JSON_KEY_RESS: ERR }
         try:
             res = []
@@ -194,14 +208,14 @@ class Server:
             return json.dumps(result)
         
         
-    def __is_prime_multiprocessing_task(self, *args) -> str:
+    def __is_prime_multiprocessing_task(self, args) -> str:
         """
         Verifica se os números fornecidos são primos usando múltiplos processos e retorna o resultado como uma string JSON.
 
         :param args: Uma lista de números inteiros a serem verificados.
         :return: Uma string JSON contendo os resultados da verificação de primos para cada número.
         """
-        print("Eu vou dormir lá em cima... Mas tomei diversos PROCESSOS") 
+        print("Verificando números primos... com multiprocessamento") 
         pool = multiprocessing.Pool()
         try:
             results = pool.map(is_prime, args)
@@ -214,14 +228,14 @@ class Server:
             return json.dumps(result)
 
 
-    def __get_last_news_if_barbacena_task(self, *args) -> str:
+    def __get_last_news_if_barbacena_task(self, args) -> str:
         """
         Obtém as últimas notícias do IFET Campus Barbacena, se disponíveis, e retorna os links em uma string JSON.
 
         :param args: Uma lista contendo a quantidade de links solicitados como o primeiro elemento.
         :return: Uma string JSON contendo os links das últimas notícias de Barbacena.
         """
-        print("Fofocando...") 
+        print("Obtendo notícias...") 
         quantity_requested = int(args[0])
         num_pages = math.ceil(quantity_requested / NEWS_IN_PAGE)
 
@@ -237,12 +251,23 @@ class Server:
             for future in concurrent.futures.as_completed(futures):
                 page_number = futures[future]
                 request_result = future.result()
-                if request_result:
+                if request_result is None:
+                    break
+                else:
                     links_list.extend(request_result)
         print("Webscrapou")
         return json.dumps({JSON_KEY_RESS: links_list[0:quantity_requested]})
 
-    
+
+    def __validate_cpf_task(self, args) -> str:
+        """
+        """
+        print("Validando CPF...") 
+        result = { JSON_KEY_RESS: ERR }
+        try:
+            result[JSON_KEY_RESS] = CPF.validate(args)
+        finally:
+            return json.dumps(result)
 
     def __decode_request_message(self, request_message: str) -> Tuple[str, Any]:
         """

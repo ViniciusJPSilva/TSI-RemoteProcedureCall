@@ -1,4 +1,5 @@
 import socket
+import ssl
 from typing import Tuple
 
 BUFFER_SIZE = 4096
@@ -8,6 +9,10 @@ LOCAL_HOST = "127.0.0.1"
 STD_ENCODE = "UTF-8"
 STD_BYTE_ORDER = "big"
 DATA_LENGTH_RESERVED_BYTES = 4
+
+SSL_FILES_FOLDER = "./web_utils/ssl_keys/{}"
+CERTFILE_NAME = "server.pem"
+KEYFILE_NAME = "server.key"
 
 def create_server_connection(ip: str = LOCAL_HOST, port: int = STD_PORT, is_tcp: bool = True) -> socket.socket:
     """
@@ -24,6 +29,9 @@ def create_server_connection(ip: str = LOCAL_HOST, port: int = STD_PORT, is_tcp:
 
     if is_tcp:
         server_socket.listen(0)
+        ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_context.load_cert_chain(SSL_FILES_FOLDER.format(CERTFILE_NAME), SSL_FILES_FOLDER.format(KEYFILE_NAME))
+        server_socket = ssl_context.wrap_socket(server_socket, server_side = True)
 
     return server_socket
 
@@ -42,6 +50,11 @@ def create_client_connection(server_ip: str = LOCAL_HOST, port: int = STD_PORT, 
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM if is_tcp else socket.SOCK_DGRAM)
     if is_tcp:
         client_socket.connect((server_ip, port))
+        ssl_context = ssl.create_default_context()
+        ssl_context.load_verify_locations(SSL_FILES_FOLDER.format(CERTFILE_NAME))
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        client_socket = ssl_context.wrap_socket(client_socket, server_hostname = server_ip)
 
     return client_socket
 

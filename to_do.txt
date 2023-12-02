@@ -1,10 +1,19 @@
 
-Desenvolva a arquitetura de comunicação da imagem:
+OK 1) Chamada remota valida_CPF(str:cpf) -> bool
 
-- O cliente RPC agora será instanciado recebendo o IP e a porta do servidor de nomes, e não mais do servidor de operações.
+OK 2) Sistema de log para auditoria: em um único arquivo texto (por servidor de operações), armazenar para cada requisição recebida (em uma linha): 
+    timestamp, IP do cliente, nome da operação, tempo de resposta.
 
-- A consulta ao servidor de nomes deverá ser via UDP.
+OK 3) Criar um shell script que leia um arquivo de log nesse formato e exiba todos os IPs únicos que fizeram requisições.
 
-- O servidor de nomes deverá retornar uma lista com os IPs dos servidores de operação que implementam a operação solicitada.
+OK 4) Criar um notebook no Kaggle ou Google Colab, fazer o upload de um arquivo de log, transformar seus dados em um dataframe Pandas. A partir dele, gerar:
 
-- O cliente deverá escolher um desses IPs aleatoriamente, para realizar o balanceamento de carga das requisições.
+    a) um gráfico de pizza com a porcentagem de chamadas por operação.
+
+    b) um gráfico de barras (horizontal) com a quantidade de requisições por endereço IP.
+
+    c) um gráfico de barras (vertical) com a quantidade de requisições por horário do dia.
+
+    d) um gráfico de dispersão onde cada ponto é uma requisição, o eixo x é a operação chamada e o eixo y é o tempo de resposta.
+
+OK 5) Implementar comunicação segura nas chamadas de procedimento remoto, usando criptografia. Você pode usar criptografia nas mensagens ou sockets seguros (SSL).

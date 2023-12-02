@@ -9,6 +9,7 @@ from rpc.rpc_exceptions import *
 from cache.cache import Cache
 from functools import wraps
 from typing import Tuple, Any, List
+import traceback
 
 ERR = "__ERROR__"
 ERR_DIV_BY_ZERO = "__ERR_DIV_0__"
@@ -22,12 +23,16 @@ MAX_ITEMS_CACHE = 10
 CACHE_LOG_FILE = "./log/cache_log.bin"
 WEB_CACHE_LOG_FILE = "./log/web_cache_log.bin"
 
-CACHE_PERSIST_TIME = 0.5 #Em minutos
+MINUTE_IN_SECONDS = 60
 
-WEB_SCRAPING_TIME_LIMIT = 0.1
+CACHE_PERSIST_TIME = 0.5 # Em minutos
+
+WEB_SCRAPING_TIME_LIMIT = 0.1 # Em minutos
 
 NS_IP_INDEX = 0
 NS_PORT_INDEX = 1
+
+NAME_SERVER_TIMEOUT = 5.0 # Em segundos
 
 def handle_rpc_exceptions(func):
     """
@@ -119,6 +124,7 @@ class Client:
         try:
             self.client_socket = connection.create_client_connection(*server_data)
         except:
+            traceback.print_exc()
             raise ConnectionError("Erro ao se conectar ao servidor!")
         
         
@@ -136,7 +142,7 @@ class Client:
         """
         try:
             # Timeout.
-            self.udp_socket.settimeout(5.0)
+            self.udp_socket.settimeout(NAME_SERVER_TIMEOUT)
 
             connection.send_udp_socket_message(self.udp_socket, task, self.name_server)
             response, _ = connection.receive_udp_socket_message(self.udp_socket)
@@ -201,7 +207,7 @@ class Client:
         :return: True se o cache foi persistido, False caso contrário.
         """
         now = time.time()
-        if (not self.last_cache_persistence) or (now - self.last_cache_persistence >= CACHE_PERSIST_TIME * 60):
+        if (not self.last_cache_persistence) or (now - self.last_cache_persistence >= CACHE_PERSIST_TIME * MINUTE_IN_SECONDS):
             self.last_cache_persistence = now
             return self.__persist_cache()
     
@@ -303,6 +309,16 @@ class Client:
             self.web_cache.add_in_cache(str(count), response)
 
         return response
+    
+    @handle_rpc_exceptions
+    def validate_cpf(self, cpf: str) -> bool:
+        """
+        Envia uma solicitação de webscraping no site de noticias do IFET Barbacena e retorna o resultado.
+
+        :param args: Números de noticias requeridas.
+        :return: Lista com o titulo e o link das respectivas noticias, em uma tupla.
+        """
+        return self.__send_request(VALDATE_CPF, cpf)
 
 
     def __get_web_cache(self, count: int) -> List[Tuple[str, str]]:
@@ -313,7 +329,7 @@ class Client:
         :return: Lista com o titulo e o link das respectivas noticias, em uma tupla. (ou None se não disponíveis ou no limite de tempo).
         """
         now = time.time()
-        if (not self.last_web_query) or (now - self.last_web_query >= WEB_SCRAPING_TIME_LIMIT * 60):
+        if (not self.last_web_query) or (now - self.last_web_query >= WEB_SCRAPING_TIME_LIMIT * MINUTE_IN_SECONDS):
             self.last_web_query = now
         else:
             web_cache = self.web_cache.get()

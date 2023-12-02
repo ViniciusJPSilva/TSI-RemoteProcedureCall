@@ -98,7 +98,7 @@ def test_server_name() -> None:
     task = -1
     while(task != 0):
         try:
-            task = int(input("\nSelecione a tarefa:\n1 - Somar\n2 - Subtrair\n3 - Multiplicar\n4 - Dividir\n5 - Lista de Números Primos\n6 - Ver notícias do IF Barbacena\n0 - Sair\nEscolha uma opção: "))
+            task = int(input("\nSelecione a tarefa:\n1 - Somar\n2 - Subtrair\n3 - Multiplicar\n4 - Dividir\n5 - Lista de Números Primos\n6 - Ver notícias do IF Barbacena\n7 - Validar CPF\n0 - Sair\nEscolha uma opção: "))
         
             try:
                 if task == 1:
@@ -176,9 +176,19 @@ def test_server_name() -> None:
                                     
                             break
                         except ValueError:
-                            print("Digite somente VALORES NUMÉRICOS, abestado...")    
+                            print("Digite somente VALORES NUMÉRICOS, abestado...")   
+                if task == 7:
+                    print("\n\nVALIDAR CPF")
+                    while(True):
+                        try:
+                            cpf = input("Forneça um CPF: ")
+                            print(f"O CPF {cpf} é {'válido' if client.validate_cpf(cpf) else 'inválido'}!")
+                            break
+                        except ValueError:
+                            print("Digite somente VALORES NUMÉRICOS, abestado...") 
                 
             except ConnectionError as ce:
+                traceback.print_exc()
                 print("\n\nERRO: Houve alguma indisponibilidade no servidor que executa essa tarefa... :(")
             except ServerNotRespondingError as snre:
                 print("\n\nERRO: Parece que o servidor de nomes não quer mais nomear... :(")

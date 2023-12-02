@@ -60,3 +60,21 @@ last_news_if_barbacena(qtd_noticias : int) -> []
 4) O cliente deverá escolher um desses IPs aleatoriamente, para realizar o balanceamento de carga das requisições.
 
 <hr>
+
+## Semana 9 e 10
+
+1) Chamada remota valida_CPF(str:cpf) -> bool
+2) Sistema de log para auditoria: em um único arquivo texto (por servidor de operações), armazenar para cada requisição recebida (em uma linha): timestamp, IP do cliente, nome da operação, tempo de resposta.
+3) Criar um shell script que leia um arquivo de log nesse formato e exiba todos os IPs únicos que fizeram requisições.
+4) Criar um notebook no Kaggle ou Google Colab, fazer o upload de um arquivo de log, transformar seus dados em um dataframe Pandas. A partir dele, gerar:
+
+```py 
+a) um gráfico de pizza com a porcentagem de chamadas por operação.
+b) um gráfico de barras (horizontal) com a quantidade de requisições por endereço IP.
+c) um gráfico de barras (vertical) com a quantidade de requisições por horário do dia.
+d) um gráfico de dispersão onde cada ponto é uma requisição, o eixo x é a operação chamada e o eixo y é o tempo de resposta.
+```
+
+5) Implementar comunicação segura nas chamadas de procedimento remoto, usando criptografia. Você pode usar criptografia nas mensagens ou sockets seguros (SSL).
+
+Link do Collab: <a href="https://colab.research.google.com/drive/14BeH1GfkLQ574NJQ2hREjLDqW-QPHN2L?usp=sharing">Clique aqui!</a>
