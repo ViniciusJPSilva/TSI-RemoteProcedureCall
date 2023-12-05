@@ -1,5 +1,34 @@
-# TSI-RemoteProcedureCall
- Sistema RPC cuja as funcionalidades irão aumentar semanalmente. O projeto é uma atividade proposta na disciplina de Sistemas Distribuidos.
+<h1 align="center"> 
+Remote Procedure Call
+</h1>
+<h4 align="center">
+Sistema RPC cuja as funcionalidades irão aumentar semanalmente. 
+ 
+O projeto é uma atividade proposta na disciplina de Sistemas Distribuidos.
+</h4>
+
+<br/>
+
+É recomendado que seja criado um ambiente virtual para execução da aplicação, conforme o comando abaixo:
+```py
+python -m venv venv
+```
+
+<br/>
+
+Acesse o ambiente virtual (Powershell):
+```py
+.\venv\Scripts\Activate.ps1  
+```
+
+<br/>
+
+Instale os pacotes python:
+```py 
+pip install -r requirements.txt
+```
+
+<br/>
 
 <hr>
 
