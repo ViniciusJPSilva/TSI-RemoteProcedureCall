@@ -9,6 +9,18 @@ O projeto é uma atividade proposta na disciplina de Sistemas Distribuidos.
 
 <br/>
 
+<div align="center" >
+ 
+![image](https://github.com/ViniciusJPSilva/TSI-RemoteProcedureCall/assets/81810017/2ada99f6-64ba-401a-8479-0fd7f90694fd)
+
+</div>
+
+<hr/>
+
+<h3>
+Instalação das Bibliotecas
+</h3>
+
 É recomendado que seja criado um ambiente virtual para execução da aplicação, conforme o comando abaixo:
 ```py
 python -m venv venv
