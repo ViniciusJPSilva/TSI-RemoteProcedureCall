@@ -77,4 +77,11 @@ d) um gráfico de dispersão onde cada ponto é uma requisição, o eixo x é a 
 
 5) Implementar comunicação segura nas chamadas de procedimento remoto, usando criptografia. Você pode usar criptografia nas mensagens ou sockets seguros (SSL).
 
-Link do Collab: <a href="https://colab.research.google.com/drive/14BeH1GfkLQ574NJQ2hREjLDqW-QPHN2L?usp=sharing">Clique aqui!</a>
+6) Link do Collab: <a href="https://colab.research.google.com/drive/14BeH1GfkLQ574NJQ2hREjLDqW-QPHN2L?usp=sharing">Clique aqui!</a>
+
+<hr>
+
+## Semana 11 - Final
+
+1) Crie uma GUI para o usuário interagir com o RPC (chamar as operações). Ela pode ser desktop ou web, em linguagem/toolkit livre.
+

@@ -1,4 +1,5 @@
 import pickle
+from io import open
 from typing import Any
 
 class Cache:

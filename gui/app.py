@@ -75,7 +75,7 @@ class App(customtkinter.CTk):
 
     def show_cpf_validator_content(self):
         self.clear_main_content()
-        self.main_content_frame = CPFValidatorFrame(self)
+        self.main_content_frame = CPFValidatorFrame(self, self.client)
 
     def clear_main_content(self):
         # Limpa o conteúdo atual do main_content_frame
