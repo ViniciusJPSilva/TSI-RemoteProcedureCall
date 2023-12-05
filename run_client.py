@@ -1,7 +1,7 @@
 import traceback
 from rpc import name_server
 from rpc.client import Client
-from rpc.rpc_exceptions import *
+from rpc.rpc_exceptions import ServerNotRespondingError, InvalidArguments, NoServersFoundError, ServerTimeoutError
 import time
 import json
 
@@ -187,20 +187,19 @@ def test_server_name() -> None:
                         except ValueError:
                             print("Digite somente VALORES NUMÉRICOS, abestado...") 
                 
-            except ConnectionError as ce:
-                traceback.print_exc()
+            except ConnectionError:
                 print("\n\nERRO: Houve alguma indisponibilidade no servidor que executa essa tarefa... :(")
-            except ServerNotRespondingError as snre:
+            except ServerNotRespondingError:
                 print("\n\nERRO: Parece que o servidor de nomes não quer mais nomear... :(")
-            except ServerTimeoutError as ste:
+            except ServerTimeoutError:
                 print("\n\nERRO: O servidor de nomes demorou muito para responder, talvez ele não goste de você... Ou só tá desligado")
-            except NoServersFoundError as nsfe:
+            except NoServersFoundError:
                 print("\n\nERRO: Nenhum dos servidores disponíveis executam essa tarefa... :(")
-            except InvalidArguments as ia:
+            except InvalidArguments:
                 print("\n\nERRO: Se tu ficar mandando coisa errada fica difícil, mande os argumentos corretos... Faz favor")
-            except ZeroDivisionError as zde:
+            except ZeroDivisionError:
                 print("\n\nERRO: 1° mandamento da matemática: não divirás por zero ! (Ou talvez o resultado seja infinito...)")
-            except Exception as e:
+            except Exception:
                 traceback.print_exc()
                 print("\n\nERRO: Rolou algum BO desconhecido... Xinga o cara que fez esse treco")
 

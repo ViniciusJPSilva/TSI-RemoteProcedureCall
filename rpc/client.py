@@ -77,10 +77,13 @@ class Client:
     def __init__(self, name_server: Tuple[str, int], server_ip: str = connection.LOCAL_HOST, 
                  server_port: int = connection.STD_PORT):
         """
-        Inicializa um cliente com o endereço do servidor e o número da porta.
+        Inicializa um objeto da classe Client.
 
-        :param server_ip: Endereço IP do servidor.
-        :param server_port: Número da porta do servidor.
+        :param name_server: Uma tupla contendo o endereço IP e a porta do servidor de nomes.
+        :param server_ip: O endereço IP do servidor ao qual o cliente se conectará. Padrão é 'localhost'.
+        :param server_port: A porta do servidor ao qual o cliente se conectará. Padrão é a porta padrão definida em connection.STD_PORT.
+
+        :return: None
         """
         self.server_ip = server_ip
         self.server_port = server_port
@@ -92,13 +95,28 @@ class Client:
         self.last_cache_persistence = None
         self.last_web_query = None
 
+    def __enter__(self):
+        """
+        Método chamado ao entrar no bloco 'with'. Retorna o próprio objeto.
+        """
+        return self
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Método chamado ao sair do bloco 'with'. Chama o método 'close()'.
+
+        :param exc_type: Tipo de exceção, se ocorreu uma. None em caso contrário.
+        :param exc_value: Valor da exceção, se ocorreu uma. None em caso contrário.
+        :param traceback: Rastreamento da pilha, se ocorreu uma exceção. None em caso contrário.
+        """
+        self.close()
 
     def __del__(self):
         """
         Fecha a conexão do cliente com o servidor ao destruir o objeto.
         """
         self.close()
-
+    
 
     def close(self):
         """

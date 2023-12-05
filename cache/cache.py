@@ -21,7 +21,7 @@ class Cache:
             with open(file_name, 'rb') as cache_file: 
                 data = pickle.load(cache_file)
             cache = Cache(max_items, data)
-        except Exception as e:
+        except Exception:
             cache = Cache(max_items, dict())
         
         return cache

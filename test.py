@@ -1,18 +1,20 @@
-from rpc import name_server
-import web_utils.connection as connection
-import rpc.tasks as tasks
-from tools.cpf import CPF
-
-def test_server():
-    socket = connection.create_client_connection("0.0.0.0", is_tcp = False)
-    connection.send_udp_socket_message(socket, "teste", (connection.LOCAL_HOST, name_server.NAME_SERVER_STD_PORT))
-
-    print(connection.receive_udp_socket_message(socket)[0].decode())
-    socket.close()
-
-def test_cpf():
-    print(CPF.validate("22316444106"))
+import tkinter as tk
+import customtkinter
 
 
-if __name__ == "__main__":
-    test_cpf()
+app = customtkinter.CTk()
+app.grid_rowconfigure(0, weight=1)
+app.grid_columnconfigure(0, weight=1)
+
+# create scrollable textbox
+tk_textbox = customtkinter.CTkTextbox(app, activate_scrollbars=False)
+tk_textbox.grid(row=0, column=0, sticky="nsew")
+
+# create CTk scrollbar
+ctk_textbox_scrollbar = customtkinter.CTkScrollbar(app, command=tk_textbox.yview)
+ctk_textbox_scrollbar.grid(row=0, column=1, sticky="ns")
+
+# connect textbox scroll event to CTk scrollbar
+tk_textbox.configure(yscrollcommand=ctk_textbox_scrollbar.set)
+
+app.mainloop()
